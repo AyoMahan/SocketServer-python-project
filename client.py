@@ -1,39 +1,17 @@
-#client program
 import socket
+import sys
 
+HOST, PORT = "localhost", 9999
+data = " ".join(sys.argv[1:])
 
-if __name__ == "__main__":
-    IP = socket.gethostbyname(socket.gethostname())
-    PORT = 9999
+# Create a socket (SOCK_STREAM means a TCP socket)
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    # Connect to server and send data
+    sock.connect((HOST, PORT))
+    sock.sendall(bytes(data + "\n", "utf-8"))
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.connect((IP, PORT))
+    # Receive data from the server and shut down
+    received = str(sock.recv(1024), "utf-8")
 
-    print("welcome to the python DB menu")
-    print("\n")
-
-    key = False
-    while key == False:
-        print(
-            "1.find customer\n2.add customer\n3.delete customer\n4.update customer age\n5.update customer address\n6.update customer phone\n7.print report\n8.exit")
-        selection = input("enter selection:")
-        if selection == "1":
-            x = input('Enter name of customer:')
-            server.send(bytes(selection, "utf-8"))
-            server.send(bytes(x, "utf-8"))
-            response = server.recv(1024)
-            response = response.decode("utf-8")
-            print(f"Server: {response}")
-
-            # pairAnswer=(selection+"::"+x)
-            # server.send(bytes(pairAnswer, "utf-8"))
-
-
-    buffer =server.recv(1024)
-    buffer=buffer.decode("utf-8")
-    buffer2 = server.recv(1024)
-    buffer2 = buffer2.decode("utf-8")
-    print(f"Server: {buffer}")
-    print(f"Server: {buffer2}")
-
-
+print("Sent:     {}".format(data))
+print("Received: {}".format(received))

@@ -1,118 +1,190 @@
-file = open("data.txt", "r")
-read = file.readlines()  # read contains the info of text file including /n returns list with new line being a list item
-
-modified = []  # create new list
-for line in read:
-    modified.append(line.strip())  # remove the /n
-def Convert(string):
-    li = list(string.split("|"))#converting list fo strings in to a list of a list
-    return li
-track=[]
-for element in modified:
-    track.append(Convert(element))#putting all the lists of strings together into a list of lists
+from urllib.parse import urlparse
+from library import Library
+from enum import Enum
 
 
-for i in range(len(track)):
-    for j in range(len(track[i])):
-        print(track[i][j], end=" ")
-    print()#printing database so far
+# Lists of supported methods
+class Methods(Enum):
+    GET = 'GET'
+    POST = 'POST'
+    PATCH = 'PATCH'
+    DELETE = 'DELETE'
 
 
+class CustomerApp:
+    def __init__(self):
+        self.http = Library()
+        self.default_url = 'http://localhost:65432'
+        self.hostname = ''
+        self.full_path = ''
 
-def find_customer(searched_name=input()):
-    for i in range(len(track)):#getting full info of person Find customer
-        for j in range(len(track[i])):
-            if(track[i][j]==searched_name):
-             print(track[i], end=" ")
+    def start(self):
+        while self.show_menu(): continue
+
+    def show_menu(self):
+        print("Python DB Menu:\n")
+        print("1. Find customer")
+        print("2. Add customer")
+        print("3. Delete customer")
+        print("4. Update customer age")
+        print("5. Update customer address")
+        print("6. Update customer phone")
+        print("7. Print report")
+        print("8. Exit")
         print()
 
+        val = input("Select: ")
+        while not val.isnumeric() or (val.isnumeric() and (int(val) < 1 or int(val) > 8)):
+            print(" Please make sure to enter a value from 1 - 8\n")
+            val = input("Select: ")
+
+        return self.process_action(int(val))
+
+    def clean(self, name):
+        return name.strip().replace(' ', '%20')
+
+    def reset(self):
+        self.hostname = ''
+        self.full_path = ''
+
+    def process_action(self, val):
+        name = ''
+        if val == 1:
+            name = self.name()
+            print()
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.GET.name, self.full_path)
+            self.reset()
+        elif val == 2:
+            # Name
+            name = self.name()
+            # Age (optional)
+            age = self.age()
+            # Address (optional)
+            address = input("Please enter customer's address: ")
+            # Number (optional)
+            number = self.phoneNumber()
+            print()
+
+            data = {
+                'name': name,
+                'age': age,
+                'address': address.strip(),
+                'number': number
+            }
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.POST.name, self.full_path, DATA=data)
+            self.reset()
+        elif val == 3:
+            # Delete customer
+            name = self.name()
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.DELETE.name, self.full_path)
+            self.reset()
+        elif val == 4:
+            # Update customer age
+            name = self.name()
+            age = self.age()
+            data = {'age': age}
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.PATCH.name, self.full_path, DATA=data)
+            self.reset()
+        elif val == 5:
+            # Update customer address
+            name = self.name()
+            address = input("Enter customer address: ")
+            data = {'address': address.strip()}
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.PATCH.name, self.full_path, DATA=data)
+            self.reset()
+            self.reset()
+        elif val == 6:
+            # Update customer phone
+            name = self.name()
+            number = self.phoneNumber()
+            data = {'number': number}
+            url = self.default_url + '/' + name
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.PATCH.name, self.full_path, DATA=data)
+            self.reset()
+            self.reset()
+            self.reset()
+        elif val == 7:
+            url = self.default_url + '/'
+            self.URLValidator(url)
+            self.http.HTTPRequest(self.hostname, Methods.GET.name, self.full_path)
+            self.reset()
+        elif val == 8:
+            return False
+
+        return True
+
+    def name(self):
+        while True:
+            name = input("Please enter customer's name: ")
+            if self.nameValidator(name): break
+            print("Please only enter letters or spaces for customer's name")
+
+        if not name: raise Exception('Invalid name')
+        return self.clean(name)
+
+    def age(self):
+        age = ''
+        while True:
+            age = input("Please enter customer's age: ")
+            if age.isnumeric() or age == '': break
+            print("Please only enter numbers for customer's age")
+        return age.strip()
+
+    def phoneNumber(self):
+        # phone number can be empty
+        number = ''
+        while True:
+            number = input("Please enter the customer's number: ")
+            if self.numberValidator(number): break
+            print("Please only enter numbers for customer's numbers")
+        return number.strip()
+
+    def numberValidator(self, nb):
+        if nb == '' or all(i.isnumeric() or i.isspace() or i == '-' for i in nb):
+            return True
+        return False
+
+    def nameValidator(self, name):
+        if name and all(i.isalpha() or i.isspace() for i in name):
+            if all(i.isspace() for i in name): return False
+            return True
+        return False
+
+    def URLValidator(self, url):
+        result = urlparse(url)
+        if all([result.scheme, result.netloc, result.hostname]):
+            self.hostname = result.netloc
+            self.full_path = result.path
+            if result.params: self.full_path += f';{result.params}'
+            if result.query: self.full_path += f'?{result.query}'
+            return url
+        else:
+            raise Exception('Please enter a valid URL.')
 
 
-#to add an entry
-def addentry(name, age, address, phone):
-    entry = [name, age, address, phone]
-    track.append(entry)
-    print(track)
+'''
+The program's starting point.
+'''
 
 
-#to remove an entry
-def removeEntry(name):
-    for i in range(len(track)):  # clearing the info of a desired customer
-        for j in range(len(track[i])):
-            if (track[i][j] == name):
-                track[i].clear()
-                break
+def main():
+    app = CustomerApp()
+    app.start()
 
-def updateAge(name, age):
-    for i in range(len(track)):  # clearing the info of a desired customer
-        for j in range(len(track[i])):
-            if (track[i][j] == name):
-                track[i][1]=age
-                break
-
-def updateAddress(name, newAddress):
-    for i in range(len(track)):  # clearing the info of a desired customer
-        for j in range(len(track[i])):
-            if (track[i][j] == name):
-                track[i][2]=newAddress
-                break
-
-def updatePhone(name, newNumber):
-    for i in range(len(track)):  # clearing the info of a desired customer
-        for j in range(len(track[i])):
-            if (track[i][j] == name):
-                track[i][3]=newNumber
-                break
-
-def printReport():
-    for i in range(len(track)):
-        for j in range(len(track[i])):
-            print(track[i][j], end=" ")
-        print()
-
-print("welcome to the python DB menu")
-print("\n")
-
-key=False
-while key==False:
-    print("1.find customer\n2.add customer\n3.delete customer\n4.update customer age\n5.update customer address\n6.update customer phone\n7.print report\n8.exit")
-    selection = input("enter selection:")
-    if selection=="1":
-        x = input('Enter name of customer:')
-        find_customer(x)
-    elif selection == "2":
-        x = input("enter the name of the person to be added")
-        y=input("Enter the age of the customer")
-        z=input("Enter the address of teh customer")
-        a=input("enter the telephone number of the customer")
-        addentry(x, y, z, a)
-    elif selection == "3":
-        x = input("enter the name of the customer to be deleted")
-        removeEntry(x)
-    elif selection == "4":
-        x = input("enter the name of the user to be updated")
-        y = input("enter the new age of the user")
-        updateAge(x, y)
-    elif selection == "5":
-        x=input("enter name of user")
-        y=input("enter updated customer address")
-        updateAddress(x, y)
-    elif selection == "6":
-        x = input("enter name of user")
-        y=input("Enter the updated phone number")
-        updatePhone(x, y)
-    elif selection == "7":
-        print("** Python DB contents **")
-        for i in range(len(track)):
-            for j in range(len(track[i])):
-                print(track[i][j], end=" ")
-            print()  # printing database so far
-    elif selection == "8":
-        print("you have succesfully exited the program")
-        key= True
-    else:
-        print("try again ")
+    print("\nGood bye!")
+    print("Client application terminated\n")
 
 
-
-
+if __name__ == "__main__":
+    main()received))
